@@ -104,6 +104,48 @@ const ProductPage: React.FC = () => {
             console.error("Lỗi khi lưu selectedProduct vào localStorage", e);
         }
     }, [selectedProduct, totalPrice]);
+    // ====================== 🧩 Kiểm tra token hợp lệ ======================
+    useEffect(() => {
+        const checkTokenValidity = async () => {
+            if (!token) {
+                alert("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!");
+                navigate("/login");
+                return;
+            }
+
+            try {
+                const res = await axios.post(
+                    "http://localhost:8888/api/v1/identity/auth/introspect",
+                    token,
+                    {
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                if (res.status !== 200) {
+                    alert(
+                        "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!"
+                    );
+                    localStorage.removeItem("token");
+                    navigate("/login");
+                }
+            } catch (error: any) {
+                console.error("❌ Token không hợp lệ hoặc đã hết hạn:", error);
+                if (error.response?.status === 401) {
+                    alert(
+                        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!"
+                    );
+                    localStorage.removeItem("token");
+                    navigate("/login");
+                }
+            }
+        };
+
+        checkTokenValidity();
+    }, [token]);
 
     useEffect(() => {
         const fetchUserInfo = async () => {
@@ -155,6 +197,28 @@ const ProductPage: React.FC = () => {
         };
 
         fetchAll();
+    }, []);
+
+    useEffect(() => {
+        const fetchAllNotification = async () => {
+            try {
+                const res = await axios.get(
+                    `http://localhost:8888/api/v1/notifications/get-notification-of-user/${userId}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`, // Thêm Bearer Token
+                        },
+                    }
+                );
+
+                setNotifications(res.data.result || []);
+                console.log("📦 các thông báo:", res.data.result);
+            } catch (error) {
+                console.error("Error fetching data:", error);
+            }
+        };
+
+        fetchAllNotification();
     }, []);
 
     // ====================== 🔍 Search ======================
@@ -294,19 +358,6 @@ const ProductPage: React.FC = () => {
     const [unreadCount, setUnreadCount] = useState<number>(
         notifications.length
     );
-
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const newNoti: NotificationItem = {
-                id: String(Date.now()),
-                message:
-                    "Bạn có khuyến mãi mới - Giảm 15% cho đơn hàng hôm nay!",
-            };
-            setNotifications((prev) => [...prev, newNoti]);
-            setUnreadCount((prev) => prev + 1);
-        }, 5000);
-        return () => clearTimeout(timer);
-    }, []);
 
     const notificationContent = (
         <List

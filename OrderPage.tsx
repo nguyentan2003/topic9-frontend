@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Card, List, Typography, Divider, Button, Tag } from "antd";
+import { Card, Typography, Divider, Button, Tag } from "antd";
 import { useNavigate } from "react-router-dom";
 import "./OrderPage.css";
 import axios from "axios";
+
 const { Title, Text } = Typography;
 const defaultImage = "default.jpg";
 const baseURLImage = "http://localhost:8888/api/v1/product/uploads/";
@@ -45,20 +46,17 @@ const OrderPage: React.FC = () => {
     useEffect(() => {
         const fetchOrderInfo = async () => {
             try {
-                // hoặc lấy từ cookie
                 if (!userId) return;
-
                 const res = await axios.get(
                     `http://localhost:8888/api/v1/customer-summary/get-list-order-user/${userId}`,
                     {
                         headers: {
-                            Authorization: `Bearer ${token}`, // Thêm Bearer Token
+                            Authorization: `Bearer ${token}`,
                         },
                     }
                 );
-
                 setOrders(res.data.result || []);
-                console.log("👤 Thông tin order :", res.data.result);
+                console.log("👤 Thông tin order:", res.data.result);
             } catch (error) {
                 console.error("Lỗi khi lấy thông tin người mua:", error);
             }
@@ -66,6 +64,7 @@ const OrderPage: React.FC = () => {
         fetchOrderInfo();
     }, []);
 
+    // ✅ Tag trạng thái đơn
     const renderStatusTag = (status: string) => {
         switch (status) {
             case "PENDING":
@@ -77,6 +76,30 @@ const OrderPage: React.FC = () => {
             default:
                 return <Tag color="default">{status}</Tag>;
         }
+    };
+
+    // ✅ Xử lý chuyển sang trang thanh toán
+    const handleGoToPayment = (order: Order) => {
+        navigate("/payment", {
+            state: {
+                orderData: {
+                    userId: order.userId,
+                    totalAmount: order.totalAmount,
+                    address: order.address,
+                    paymentType: order.paymentType,
+                    listItemDetail: order.orderItemSummaries,
+                },
+                result: {
+                    id: order.orderId,
+                    userId: order.userId,
+                    status: order.orderStatus,
+                    totalAmount: order.totalAmount,
+                    paymentType: order.paymentType,
+                    address: order.address,
+                },
+                fullName: order.fullName,
+            },
+        });
     };
 
     return (
@@ -92,7 +115,7 @@ const OrderPage: React.FC = () => {
                 {orders.length === 0 ? (
                     <div className="no-order">
                         <Title level={4} type="secondary">
-                            Hiện tại chưa có đơn hàng nào !!!!
+                            Hiện tại chưa có đơn hàng nào!
                         </Title>
                     </div>
                 ) : (
@@ -140,6 +163,40 @@ const OrderPage: React.FC = () => {
                                         ? "Thanh toán trước"
                                         : "Khi nhận hàng"}
                                 </p>
+
+                                {/* ✅ Hiển thị trạng thái thanh toán nếu đang PENDING */}
+                                {order.orderStatus === "PENDING" && (
+                                    <p>
+                                        <Text strong>
+                                            Trạng thái thanh toán:
+                                        </Text>{" "}
+                                        {order.paymentStatus === "PAID" ? (
+                                            <Tag color="green">
+                                                💰 Đã thanh toán
+                                            </Tag>
+                                        ) : (
+                                            <>
+                                                <Tag color="red">
+                                                    💸 Chưa thanh toán
+                                                </Tag>
+                                                <Button
+                                                    type="primary"
+                                                    size="small"
+                                                    style={{
+                                                        marginLeft: 8,
+                                                        backgroundColor:
+                                                            "#1677ff",
+                                                    }}
+                                                    onClick={() =>
+                                                        handleGoToPayment(order)
+                                                    }
+                                                >
+                                                    💳 Thanh toán ngay
+                                                </Button>
+                                            </>
+                                        )}
+                                    </p>
+                                )}
                             </div>
 
                             <Divider style={{ margin: "8px 0" }} />
