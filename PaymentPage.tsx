@@ -4,12 +4,21 @@ import { useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 import "./PaymentPage.css";
 
+interface OrderItem {
+    productId: string;
+    productName: string;
+    quantity: number;
+    priceAtTime: number;
+    imageUrl: string;
+}
+
 interface OrderData {
     userId: string;
     totalAmount: number;
     address: string;
     paymentType: string;
     orderDate?: string;
+    listItemDetail?: OrderItem[];
     [key: string]: any;
 }
 
@@ -27,14 +36,13 @@ const PaymentPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
 
-    // ✅ Nhận dữ liệu từ navigate()
+    // ✅ Dữ liệu truyền từ trang trước
     const state = location.state as {
         orderData?: OrderData;
         result?: OrderResult;
         fullName?: string;
     } | null;
 
-    // ✅ Lưu vào state nội bộ để tránh mất dữ liệu khi reload
     const [orderData, setOrderData] = useState<OrderData | null>(
         state?.orderData || null
     );
@@ -42,7 +50,7 @@ const PaymentPage: React.FC = () => {
         state?.result || null
     );
 
-    // ✅ Khi component mount, nếu reload (state bị mất), khôi phục từ sessionStorage
+    // ✅ Khôi phục dữ liệu khi reload
     useEffect(() => {
         if (state?.orderData && state?.result) {
             sessionStorage.setItem(
@@ -60,7 +68,7 @@ const PaymentPage: React.FC = () => {
         }
     }, [state]);
 
-    // ✅ Nếu vẫn chưa có dữ liệu thì báo lỗi
+    // ✅ Kiểm tra dữ liệu
     if (!orderData || !orderResult) {
         return (
             <div className="error-page">
@@ -72,10 +80,8 @@ const PaymentPage: React.FC = () => {
         );
     }
 
-    // 🔹 Hàm gửi dữ liệu thanh toán lên server
+    // 🔹 Hàm gửi trạng thái thanh toán
     const sendPaymentStatus = async (status: string) => {
-        console.log(status);
-
         try {
             const payload = {
                 orderId: orderResult.id,
@@ -85,14 +91,12 @@ const PaymentPage: React.FC = () => {
                 transactionId: "TXN_" + Math.floor(Math.random() * 1000000),
                 paymentTime: new Date()
                     .toLocaleString("vi-VN", { hour12: false })
-                    .replace(",", "__"), // giống format bạn dùng
+                    .replace(",", "__"),
             };
 
-            console.log("📤 Dữ liệu gửi đi:", payload);
             const token = localStorage.getItem("token");
             const res = await axios.post(
                 "http://localhost:8888/api/v1/payment/create",
-
                 payload,
                 {
                     headers: {
@@ -103,7 +107,7 @@ const PaymentPage: React.FC = () => {
             );
 
             console.log("✅ Phản hồi từ server:", res.data);
-            return res.data;
+            return true;
         } catch (error) {
             console.error("❌ Lỗi khi gửi API thanh toán:", error);
             throw error;
@@ -123,12 +127,25 @@ const PaymentPage: React.FC = () => {
         }
     };
 
-    // ✅ Khi hủy thanh toán
+    // ✅ Khi hủy thanh toán → quay lại giỏ hàng và khôi phục sản phẩm
     const handleCancel = async (): Promise<void> => {
         try {
             await sendPaymentStatus("FAILED");
             alert("🚫 Thanh toán đã bị hủy!");
-            navigate("/user-page");
+
+            // 🔹 Lưu lại danh sách sản phẩm đã chọn (nếu có)
+            if (
+                orderData.listItemDetail &&
+                orderData.listItemDetail.length > 0
+            ) {
+                sessionStorage.setItem(
+                    "cartItems",
+                    JSON.stringify(orderData.listItemDetail)
+                );
+            }
+
+            // 🔹 Chuyển về giỏ hàng
+            navigate("/user-page", { replace: true });
         } catch {
             alert("⚠️ Không thể gửi trạng thái hủy!");
         }
@@ -186,15 +203,7 @@ const PaymentPage: React.FC = () => {
                     Xác nhận thanh toán
                 </motion.button>
 
-                <button
-                    className="btn-cancel"
-                    onClick={() => {
-                        handleCancel();
-                        navigate("/user-page", {
-                            state: { orderData, orderResult },
-                        });
-                    }}
-                >
+                <button className="btn-cancel" onClick={handleCancel}>
                     Hủy
                 </button>
             </motion.div>

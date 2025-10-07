@@ -89,82 +89,93 @@ const OrderPage: React.FC = () => {
             </div>
 
             <div className="order-grid">
-                {orders.map((order) => (
-                    <Card key={order.id} className="order-card">
-                        <div className="order-top">
-                            <div>
-                                <Text strong>Mã đơn:</Text> {order.orderId}
+                {orders.length === 0 ? (
+                    <div className="no-order">
+                        <Title level={4} type="secondary">
+                            Hiện tại chưa có đơn hàng nào !!!!
+                        </Title>
+                    </div>
+                ) : (
+                    orders.map((order) => (
+                        <Card key={order.id} className="order-card">
+                            <div className="order-top">
+                                <div>
+                                    <Text strong>Mã đơn:</Text> {order.orderId}
+                                </div>
+                                {renderStatusTag(order.orderStatus)}
                             </div>
-                            {renderStatusTag(order.orderStatus)}
-                        </div>
 
-                        <Divider style={{ margin: "8px 0" }} />
+                            <Divider style={{ margin: "8px 0" }} />
 
-                        <div className="order-summary">
-                            <p>
-                                <Text strong>Khách:</Text> {order.fullName}
-                            </p>
-                            <p>
-                                <Text strong>Tổng tiền:</Text>{" "}
-                                <span className="total">
-                                    {order.totalAmount.toLocaleString("vi-VN")}{" "}
-                                    ₫
-                                </span>
-                            </p>
-                            <p>
-                                <Text strong>Ngày đặt:</Text>{" "}
-                                {new Date(order.orderDate).toLocaleString(
-                                    "vi-VN",
-                                    {
-                                        day: "2-digit",
-                                        month: "2-digit",
-                                        year: "numeric",
-                                        hour: "2-digit",
-                                        minute: "2-digit",
-                                        second: "2-digit",
-                                    }
-                                )}
-                            </p>
-
-                            <p>
-                                <Text strong>Thanh toán:</Text>{" "}
-                                {order.paymentType === "PREPAID"
-                                    ? "Thanh toán trước"
-                                    : "Khi nhận hàng"}
-                            </p>
-                        </div>
-
-                        <Divider style={{ margin: "8px 0" }} />
-
-                        <div className="product-preview">
-                            {order.orderItemSummaries.map((item) => (
-                                <div
-                                    key={item.productId}
-                                    className="product-item"
-                                >
-                                    <img
-                                        src={
-                                            item.imageUrl
-                                                ? `${baseURLImage}${item.imageUrl}`
-                                                : `${baseURLImage}${defaultImage}`
+                            <div className="order-summary">
+                                <p>
+                                    <Text strong>Khách:</Text> {order.fullName}
+                                </p>
+                                <p>
+                                    <Text strong>Tổng tiền:</Text>{" "}
+                                    <span className="total">
+                                        {order.totalAmount.toLocaleString(
+                                            "vi-VN"
+                                        )}{" "}
+                                        ₫
+                                    </span>
+                                </p>
+                                <p>
+                                    <Text strong>Ngày đặt:</Text>{" "}
+                                    {new Date(order.orderDate).toLocaleString(
+                                        "vi-VN",
+                                        {
+                                            day: "2-digit",
+                                            month: "2-digit",
+                                            year: "numeric",
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            second: "2-digit",
                                         }
-                                        alt={item.productName}
-                                    />
-                                    <div>
-                                        <Text strong>{item.productName}</Text>
+                                    )}
+                                </p>
+                                <p>
+                                    <Text strong>Thanh toán:</Text>{" "}
+                                    {order.paymentType === "PREPAID"
+                                        ? "Thanh toán trước"
+                                        : "Khi nhận hàng"}
+                                </p>
+                            </div>
+
+                            <Divider style={{ margin: "8px 0" }} />
+
+                            <div className="product-preview">
+                                {order.orderItemSummaries.map((item) => (
+                                    <div
+                                        key={item.productId}
+                                        className="product-item"
+                                    >
+                                        <img
+                                            src={
+                                                item.imageUrl
+                                                    ? `${baseURLImage}${item.imageUrl}`
+                                                    : `${baseURLImage}${defaultImage}`
+                                            }
+                                            alt={item.productName}
+                                        />
                                         <div>
-                                            {item.quantity} ×{" "}
-                                            {item.priceAtTime.toLocaleString(
-                                                "vi-VN"
-                                            )}{" "}
-                                            ₫
+                                            <Text strong>
+                                                {item.productName}
+                                            </Text>
+                                            <div>
+                                                {item.quantity} ×{" "}
+                                                {item.priceAtTime.toLocaleString(
+                                                    "vi-VN"
+                                                )}{" "}
+                                                ₫
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                ))}
+                                ))}
+                            </div>
+                        </Card>
+                    ))
+                )}
             </div>
         </div>
     );

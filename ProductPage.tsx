@@ -70,6 +70,41 @@ const ProductPage: React.FC = () => {
     // Thông tin người mua
     const [userInfo, setUserInfo] = useState(null);
 
+    // ================ 🧩 NEW — Khôi phục giỏ hàng từ localStorage khi load trang ================
+    useEffect(() => {
+        const savedCart = localStorage.getItem("selectedProduct");
+        const savedTotal = localStorage.getItem("totalPrice");
+        if (savedCart) {
+            try {
+                const parsed = JSON.parse(savedCart) as CartItem[];
+                setSelectedProduct(parsed);
+                selectedProductRef.current = parsed;
+            } catch (e) {
+                console.error(
+                    "Lỗi khi parse selectedProduct từ localStorage",
+                    e
+                );
+            }
+        }
+        if (savedTotal) {
+            const num = Number(savedTotal);
+            if (!Number.isNaN(num)) setTotalPrice(num);
+        }
+    }, []);
+
+    // ================ 🧩 NEW — Lưu giỏ hàng & tổng tiền vào localStorage khi thay đổi ================
+    useEffect(() => {
+        try {
+            localStorage.setItem(
+                "selectedProduct",
+                JSON.stringify(selectedProduct)
+            );
+            localStorage.setItem("totalPrice", String(totalPrice));
+        } catch (e) {
+            console.error("Lỗi khi lưu selectedProduct vào localStorage", e);
+        }
+    }, [selectedProduct, totalPrice]);
+
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
@@ -211,6 +246,9 @@ const ProductPage: React.FC = () => {
 
                 setSelectedProduct([]);
                 setTotalPrice(0);
+                // 🧩 NEW — xoá localStorage sau khi đặt hàng thành công (giữ logic cũ nhưng đồng bộ với localStorage)
+                localStorage.removeItem("selectedProduct");
+                localStorage.removeItem("totalPrice");
                 // setBuyerName("");
             } else {
                 alert("Đặt hàng thất bại, vui lòng thử lại!");
@@ -236,6 +274,9 @@ const ProductPage: React.FC = () => {
         setSelectedProduct([]);
         selectedProductRef.current = [];
         setTotalPrice(0);
+        // 🧩 NEW — xoá localStorage khi làm mới giỏ
+        localStorage.removeItem("selectedProduct");
+        localStorage.removeItem("totalPrice");
     };
 
     // ====================== 🚪 Đăng xuất ======================
