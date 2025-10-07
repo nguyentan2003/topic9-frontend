@@ -1,0 +1,101 @@
+.body_login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #1f3c88, #4e73df);
+    font-family: "Poppins", sans-serif;
+    margin: 0;
+}
+
+/* Khung đăng nhập rõ ràng, nổi bật */
+.container {
+    background: #ffffff;
+    padding: 40px 35px;
+    border-radius: 16px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    text-align: center;
+    width: 360px;
+    animation: fadeIn 0.8s ease;
+}
+
+/* Hiệu ứng xuất hiện nhẹ */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.title {
+    font-size: 26px;
+    font-weight: 700;
+    margin-bottom: 25px;
+    color: #2d3748;
+    letter-spacing: 1px;
+}
+
+/* Nhóm input */
+.inputGroup {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.inputGroup label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #4a5568;
+}
+
+.inputGroup input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    font-size: 16px;
+    outline: none;
+    transition: all 0.3s ease;
+    color: #2d3748;
+    background: #f7fafc;
+}
+
+.inputGroup input:focus {
+    border-color: #4e73df;
+    background: #fff;
+    box-shadow: 0 0 5px rgba(78, 115, 223, 0.4);
+}
+
+/* Thông báo lỗi */
+.errorMessage {
+    color: #e53e3e;
+    background: #fff5f5;
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    font-size: 14px;
+}
+
+/* Nút đăng nhập */
+.button {
+    width: 100%;
+    background: #4e73df;
+    color: white;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.button:hover {
+    background: #2e59d9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(46, 89, 217, 0.4);
+}

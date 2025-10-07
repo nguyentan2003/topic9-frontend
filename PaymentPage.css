@@ -1,0 +1,94 @@
+.payment-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background: #f6f8fb;
+}
+
+.payment-card {
+    background: white;
+    padding: 30px 40px;
+    border-radius: 12px;
+    width: 400px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.payment-card h2 {
+    margin-bottom: 20px;
+    color: #333;
+}
+
+.order-info {
+    text-align: left;
+    margin-bottom: 20px;
+    font-size: 15px;
+}
+
+.input-box,
+.input-half {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 14px;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.input-half {
+    width: 48%;
+}
+
+.btn-pay {
+    width: 100%;
+    padding: 12px;
+    background: #007bff;
+    color: white;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    margin-top: 20px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-pay:hover {
+    background: #0056b3;
+}
+
+.btn-cancel {
+    width: 100%;
+    padding: 10px;
+    background: #f44336;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    margin-top: 10px;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    background: #c9302c;
+}
+
+.error-page {
+    text-align: center;
+    padding: 100px;
+}
+
+.btn {
+    background: #007bff;
+    border: none;
+    padding: 10px 20px;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 20px;
+}
