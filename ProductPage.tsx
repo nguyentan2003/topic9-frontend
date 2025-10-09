@@ -112,11 +112,17 @@ const ProductPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        console.log("Notifications updated:", notifications);
-
         const unread = notifications.filter((n) => !n.read).length;
         setUnreadCount(unread);
     }, [notifications]);
+
+    useEffect(() => {
+        localStorage.setItem(
+            "selectedProduct",
+            JSON.stringify(selectedProduct)
+        );
+        localStorage.setItem("totalPrice", String(totalPrice));
+    }, [selectedProduct, totalPrice]);
 
     // ================ 🧩 NEW — Lưu giỏ hàng & tổng tiền vào localStorage khi thay đổi ================
     useEffect(() => {
@@ -162,7 +168,6 @@ const ProductPage: React.FC = () => {
                 }
 
                 // ✅ Nếu còn hạn thì bạn có thể tiếp tục gọi API khác ở đây nếu muốn
-                console.log("✅ Token hợp lệ, userId:", decoded.sub);
             } catch (error) {
                 console.error("❌ Token không hợp lệ:", error);
                 alert("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
@@ -192,7 +197,6 @@ const ProductPage: React.FC = () => {
                 setUserInfo(res.data.result);
                 setBuyerName(res.data.result.fullName || "Tấn");
                 setAddress(res.data.result.address || "Thôn 4, Quỳnh Giang");
-                console.log("👤 Thông tin người dùng:", res.data.result);
             } catch (error) {
                 console.error("Lỗi khi lấy thông tin người mua:", error);
             }
@@ -217,7 +221,6 @@ const ProductPage: React.FC = () => {
                 );
 
                 setDataAllProduct(res.data.result || []);
-                console.log("📦 Dữ liệu sản phẩm:", res.data.result);
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
@@ -271,8 +274,6 @@ const ProductPage: React.FC = () => {
                 );
 
                 setNotifications(res.data.result || []);
-
-                console.log("📦 các thông báo:", res.data.result);
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
@@ -293,40 +294,50 @@ const ProductPage: React.FC = () => {
             return;
         }
 
-        const index = selectedProductRef.current.findIndex(
+        const existingIndex = selectedProduct.findIndex(
             (item) => item.id === product.id
         );
 
-        let newSelectedProduct: CartItem[] = [];
-        if (index === -1) {
-            newSelectedProduct = [
-                { ...product, quantity: 1 },
-                ...selectedProductRef.current,
-            ];
+        let updatedCart;
+        if (existingIndex === -1) {
+            updatedCart = [{ ...product, quantity: 1 }, ...selectedProduct];
         } else {
-            newSelectedProduct = [...selectedProductRef.current];
-            newSelectedProduct[index].quantity += 1;
+            updatedCart = [...selectedProduct];
+            updatedCart[existingIndex].quantity += 1;
         }
 
-        selectedProductRef.current = newSelectedProduct;
-        setSelectedProduct(newSelectedProduct);
-        setTotalPrice((prevTotal) => prevTotal + product.price);
+        const newTotal = totalPrice + product.price;
+
+        setSelectedProduct(updatedCart);
+        setTotalPrice(newTotal);
+
+        // 🧩 Đồng bộ localStorage
+        localStorage.setItem("selectedProduct", JSON.stringify(updatedCart));
+        localStorage.setItem("totalPrice", String(newTotal));
     };
 
     // ====================== ❌ Xóa khỏi giỏ ======================
     const handleRemoveFromCart = (product: CartItem) => {
-        const index = selectedProduct.findIndex(
+        const existingIndex = selectedProduct.findIndex(
             (item) => item.id === product.id
         );
-        const updatedSelectedProduct = [...selectedProduct];
-        updatedSelectedProduct[index].quantity -= 1;
+        if (existingIndex === -1) return;
 
-        if (updatedSelectedProduct[index].quantity === 0) {
-            updatedSelectedProduct.splice(index, 1);
+        const updatedCart = [...selectedProduct];
+        updatedCart[existingIndex].quantity -= 1;
+
+        if (updatedCart[existingIndex].quantity <= 0) {
+            updatedCart.splice(existingIndex, 1);
         }
 
-        setSelectedProduct(updatedSelectedProduct);
-        setTotalPrice(totalPrice - product.price);
+        const newTotal = totalPrice - product.price;
+
+        setSelectedProduct(updatedCart);
+        setTotalPrice(newTotal);
+
+        // 🧩 Đồng bộ localStorage
+        localStorage.setItem("selectedProduct", JSON.stringify(updatedCart));
+        localStorage.setItem("totalPrice", String(newTotal));
     };
 
     // ====================== 💰 Thanh toán ======================

@@ -12,12 +12,41 @@ export interface Product {
 }
 
 export interface Order {
-    id: number;
-    customer: string;
-    date: string;
-    status: "pending" | "shipped" | "delivered" | "cancelled";
-    total: number;
-    items: { productId: number; quantity: number }[];
+    id: string;
+
+    // Profile
+    userId: string;
+    username: string;
+    email: string;
+    fullName: string;
+    phone: string;
+    address: string;
+
+    // Order
+    orderId: string;
+    orderDate: string;
+    totalAmount: number;
+    paymentType: string;
+    orderStatus: string;
+    shippingAddress: string;
+    // Payment
+    paymentMethod: string;
+    paymentStatus: string;
+    transactionId: string;
+    paymentTime: string;
+
+    // Danh sách sản phẩm đã chọn trong order
+    statusStock: string;
+
+    createdAt: Date;
+    updatedAt: Date;
+    orderItemSummaries: {
+        productId: string;
+        productName: string;
+        priceAtTime: number;
+        imageUrl: string;
+        quantity: number;
+    }[];
 }
 
 export interface User {
@@ -79,44 +108,7 @@ export const products: Product[] = [
 const getToday = () => new Date().toISOString().split("T")[0];
 
 export const orders: Order[] = [
-    {
-        id: 101,
-        customer: "Nguyễn Văn A",
-        date: getToday(),
-        status: "delivered",
-        items: [
-            { productId: 1, quantity: 1 },
-            { productId: 3, quantity: 1 },
-        ],
-        total: 26500000,
-    },
-    {
-        id: 102,
-        customer: "Trần Thị B",
-        date: getToday(),
-        status: "pending",
-        items: [{ productId: 2, quantity: 1 }],
-        total: 18000000,
-    },
-    {
-        id: 103,
-        customer: "Lê Văn C",
-        date: "2023-10-27",
-        status: "shipped",
-        items: [
-            { productId: 4, quantity: 2 },
-            { productId: 5, quantity: 1 },
-        ],
-        total: 2200000,
-    },
-    {
-        id: 104,
-        customer: "Phạm Thị D",
-        date: "2023-10-26",
-        status: "cancelled",
-        items: [{ productId: 1, quantity: 2 }],
-        total: 50000000,
-    },
+   
 ];
 
 export const users: User[] = [
