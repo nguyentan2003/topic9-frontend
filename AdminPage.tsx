@@ -5,8 +5,8 @@
 import React, { useState, useEffect } from "react";
 import "./AdminPage.css";
 import { ProductManagement } from "./ProductManagement";
-import { OrderManagement } from "./OrderManagement";
-import { UserManagement } from "./UserManagement";
+
+import UserManagement from "./UserManagement";
 import { DeliveryManagement } from "./DeliveryManagement";
 import { Dashboard } from "./Dashboard";
 import { useNavigate } from "react-router-dom";
@@ -31,8 +31,7 @@ export function AdminPage() {
                 return <Dashboard />;
             case "products":
                 return <ProductManagement />;
-            case "orders":
-                return <OrderManagement />;
+
             case "users":
                 return <UserManagement />;
             case "delivery":
@@ -61,9 +60,9 @@ export function AdminPage() {
                 </div>
                 <nav className="sidebar-nav">
                     <ul>
-                        <NavLink view="dashboard" label="Tổng quan" />
+                        <NavLink view="dashboard" label="Thống kê đơn hàng" />
                         <NavLink view="products" label="Sản phẩm" />
-                        <NavLink view="orders" label="Đơn hàng" />
+                        {/* <NavLink view="orders" label="Đơn hàng" /> */}
                         <NavLink view="users" label="Người dùng" />
                         <NavLink view="delivery" label="Giao hàng" />
                     </ul>

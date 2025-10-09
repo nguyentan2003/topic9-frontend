@@ -63,6 +63,7 @@ const ProductPage: React.FC = () => {
     const navigate = useNavigate();
     const token = localStorage.getItem("token");
     const userId = localStorage.getItem("userId");
+    const role = localStorage.getItem("role");
 
     const [dataAllProduct, setDataAllProduct] = useState<Product[]>([]);
     const [searchKeyword, setSearchKeyword] = useState<string>("");
@@ -697,7 +698,15 @@ const ProductPage: React.FC = () => {
                                 />
                             </Badge>
                         </Popover>
-
+                        {role === "ROLE_ADMIN" && (
+                            <Button
+                                onClick={() => navigate("/admin-page")}
+                                type="primary"
+                                style={{ backgroundColor: "#1890ff" }}
+                            >
+                                Quản Trị
+                            </Button>
+                        )}
                         {/* 🚪 Đăng xuất */}
                         <Button
                             onClick={handleLogout}

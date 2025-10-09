@@ -1,123 +1,237 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-import React, { useState } from 'react';
-import { users as initialUsers, User } from './data';
-import { Modal } from './Modal';
-
-export function UserManagement() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-
-  const handleOpenModal = (user: User | null = null) => {
-    setEditingUser(user);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setEditingUser(null);
-    setIsModalOpen(false);
-  };
-
-  const handleSaveUser = (user: User) => {
-    if (editingUser) {
-      setUsers(users.map(u => u.id === user.id ? user : u));
-    } else {
-      const newUser = { ...user, id: Date.now() };
-      setUsers([...users, newUser]);
-    }
-    handleCloseModal();
-  };
-
-  return (
-    <div className="management-page">
-      <div className="page-header">
-        <h2>Quản lý Người dùng</h2>
-        <button onClick={() => handleOpenModal()} className="add-button">Thêm người dùng</button>
-      </div>
-      <table>
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Tên</th>
-            <th>Email</th>
-            <th>Vai trò</th>
-            <th>Hành động</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map(user => (
-            <tr key={user.id}>
-              <td>{user.id}</td>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.role.charAt(0).toUpperCase() + user.role.slice(1)}</td>
-              <td>
-                <button onClick={() => handleOpenModal(user)} className="edit-button">Sửa</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {isModalOpen && (
-        <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={editingUser ? 'Chỉnh sửa người dùng' : 'Thêm người dùng mới'}>
-          <UserForm user={editingUser} onSave={handleSaveUser} onCancel={handleCloseModal} />
-        </Modal>
-      )}
-    </div>
-  );
-}
-
-interface UserFormProps {
-    user: User | null;
-    onSave: (user: User) => void;
-    onCancel: () => void;
-}
-
-function UserForm({ user, onSave, onCancel }: UserFormProps) {
-    const [formData, setFormData] = useState<Omit<User, 'id'>>({
-        name: user?.name ?? '',
-        email: user?.email ?? '',
-        role: user?.role ?? 'viewer',
+import React, { useEffect, useState } from "react";
+import "./UserManagement.css";
+export default function UserManagement() {
+    const [users, setUsers] = useState([]);
+    const [isOpen, setIsOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState(null);
+    const [formData, setFormData] = useState({
+        fullName: "",
+        email: "",
+        role: "USER",
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value,
-        }));
+    // 🔹 Gọi API để lấy dữ liệu người dùng
+    useEffect(() => {
+        const token = localStorage.getItem("token"); // Lấy token
+
+        fetch("http://localhost:8888/api/v1/identity/users", {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`, // ✅ thêm token ở đây
+            },
+        })
+            .then((res) => res.json())
+            .then((data) => {
+                console.log(data);
+
+                if (data.code === 1000) {
+                    // Nếu result là mảng thì dùng luôn, còn nếu là object thì bọc vào mảng
+                    const result = Array.isArray(data.result)
+                        ? data.result
+                        : [data.result];
+                    setUsers(result);
+                }
+            })
+            .catch((err) => console.error("API error:", err));
+    }, []);
+
+    // 🔹 Mở modal (thêm hoặc sửa)
+    const handleOpen = (user = null) => {
+        if (user) {
+            setEditingUser(user);
+            setFormData({
+                fullName: user.fullName,
+                email: user.email,
+                role: user.roles[0]?.name || "USER",
+            });
+        } else {
+            setEditingUser(null);
+            setFormData({ fullName: "", email: "", role: "USER" });
+        }
+        setIsOpen(true);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({ ...(user || {id: 0}), ...formData });
+    // 🔹 Đóng modal
+    const handleClose = () => {
+        setIsOpen(false);
+        setEditingUser(null);
+    };
+
+    // 🔹 Lưu người dùng
+    const handleSave = () => {
+        if (editingUser) {
+            setUsers((prev) =>
+                prev.map((u) =>
+                    u.id === editingUser.id
+                        ? {
+                              ...u,
+                              fullName: formData.fullName,
+                              email: formData.email,
+                              roles: [
+                                  {
+                                      name: formData.role,
+                                      description: "",
+                                      permissions: [],
+                                  },
+                              ],
+                          }
+                        : u
+                )
+            );
+        } else {
+            const newUser = {
+                id: Date.now().toString(),
+                username: formData.email.split("@")[0],
+                fullName: formData.fullName,
+                email: formData.email,
+                phone: "",
+                address: "",
+                roles: [
+                    { name: formData.role, description: "", permissions: [] },
+                ],
+            };
+            setUsers((prev) => [...prev, newUser]);
+        }
+        handleClose();
+    };
+
+    // 🔹 Xóa người dùng
+    const handleDelete = (id) => {
+        if (window.confirm("Bạn có chắc muốn xóa người dùng này?")) {
+            setUsers(users.filter((u) => u.id !== id));
+        }
     };
 
     return (
-        <form onSubmit={handleSubmit} className="modal-form">
-            <div className="form-group">
-                <label htmlFor="name">Tên</label>
-                <input type="text" id="name" name="name" value={formData.name} onChange={handleChange} required />
+        <div className="container">
+            <div className="header">
+                <h2>Quản lý người dùng</h2>
+                <button className="btn btn-add" onClick={() => handleOpen()}>
+                    + Thêm người dùng
+                </button>
             </div>
-            <div className="form-group">
-                <label htmlFor="email">Email</label>
-                <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required />
-            </div>
-            <div className="form-group">
-                <label htmlFor="role">Vai trò</label>
-                <select id="role" name="role" value={formData.role} onChange={handleChange}>
-                    <option value="admin">Admin</option>
-                    <option value="editor">Editor</option>
-                    <option value="viewer">Viewer</option>
-                </select>
-            </div>
-            <div className="form-actions">
-                <button type="submit" className="save-button">Lưu</button>
-                <button type="button" onClick={onCancel} className="cancel-button">Hủy</button>
-            </div>
-        </form>
+
+            <table className="user-table">
+                <thead>
+                    <tr>
+                        <th>Tên</th>
+                        <th>Email</th>
+                        <th>Vai trò</th>
+                        <th>Hành động</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {users.length > 0 ? (
+                        users.map((user) => (
+                            <tr key={user.id}>
+                                <td>{user.fullName}</td>
+                                <td>{user.email}</td>
+                                <td>
+                                    {user.roles?.[0]?.name ||
+                                        "Không có vai trò"}
+                                </td>
+
+                                <td>
+                                    <button
+                                        className="btn btn-edit"
+                                        onClick={() => handleOpen(user)}
+                                    >
+                                        Sửa
+                                    </button>
+                                    <button
+                                        className="btn btn-delete"
+                                        onClick={() => handleDelete(user.id)}
+                                    >
+                                        Xóa
+                                    </button>
+                                </td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan={4} className="no-data">
+                                Không có người dùng nào
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+
+            {/* Modal */}
+            {isOpen && (
+                <div className="modal-overlay">
+                    <div className="modal">
+                        <h3>
+                            {editingUser
+                                ? "Chỉnh sửa người dùng"
+                                : "Thêm người dùng mới"}
+                        </h3>
+
+                        <div className="form-group">
+                            <label>Tên</label>
+                            <input
+                                type="text"
+                                value={formData.fullName}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        fullName: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>Email</label>
+                            <input
+                                type="email"
+                                value={formData.email}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        email: e.target.value,
+                                    })
+                                }
+                                required
+                            />
+                        </div>
+
+                        <div className="form-group">
+                            <label>Vai trò</label>
+                            <select
+                                value={formData.role}
+                                onChange={(e) =>
+                                    setFormData({
+                                        ...formData,
+                                        role: e.target.value,
+                                    })
+                                }
+                            >
+                                <option value="ADMIN">Admin</option>
+                                <option value="USER">User</option>
+                                <option value="EDITOR">Editor</option>
+                            </select>
+                        </div>
+
+                        <div className="modal-actions">
+                            <button
+                                className="btn btn-cancel"
+                                onClick={handleClose}
+                            >
+                                Hủy
+                            </button>
+                            <button
+                                className="btn btn-save"
+                                onClick={handleSave}
+                            >
+                                Lưu
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }

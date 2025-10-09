@@ -51,9 +51,9 @@ export interface Order {
 
 export interface User {
     id: number;
-    name: string;
+    fullname: string;
     email: string;
-    role: "admin" | "editor" | "viewer";
+    role: "ROLE_ADMIN" | "ROLE_USER";
 }
 
 export interface DeliveryStatus {
@@ -107,14 +107,27 @@ export const products: Product[] = [
 
 const getToday = () => new Date().toISOString().split("T")[0];
 
-export const orders: Order[] = [
-   
-];
+export const orders: Order[] = [];
 
 export const users: User[] = [
-    { id: 1, name: "Admin User", email: "admin@example.com", role: "admin" },
-    { id: 2, name: "Editor User", email: "editor@example.com", role: "editor" },
-    { id: 3, name: "Viewer User", email: "viewer@example.com", role: "viewer" },
+    {
+        id: 1,
+        fullname: "Admin User",
+        email: "admin@example.com",
+        role: "ROLE_ADMIN",
+    },
+    {
+        id: 2,
+        fullname: "Editor User",
+        email: "editor@example.com",
+        role: "ROLE_USER",
+    },
+    {
+        id: 3,
+        fullname: "Viewer User",
+        email: "viewer@example.com",
+        role: "ROLE_USER",
+    },
 ];
 
 export const deliveryStatuses: DeliveryStatus[] = [
