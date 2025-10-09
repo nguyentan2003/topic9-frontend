@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef, use } from "react";
+import { EventSourcePolyfill } from "event-source-polyfill";
+import { jwtDecode } from "jwt-decode";
 import {
     BellOutlined,
     ShoppingCartOutlined,
@@ -40,10 +42,20 @@ interface Product {
 interface CartItem extends Product {
     quantity: number;
 }
+interface JwtPayload {
+    exp: number; // thời gian hết hạn (UNIX timestamp)
+    sub?: string; // ID user
+    [key: string]: any; // các trường khác
+}
 
 interface NotificationItem {
     id: string;
     message: string;
+    notificationId: string;
+    userId: string;
+    read: boolean;
+    sentAt: Date;
+    type: string;
 }
 
 // ====================== 🧱 Component chính ======================
@@ -69,6 +81,13 @@ const ProductPage: React.FC = () => {
 
     // Thông tin người mua
     const [userInfo, setUserInfo] = useState(null);
+    // ====================== 🔔 Thông báo ======================
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    //  { id: "1", message: "Đơn hàng #1234 đã được xác nhận" },
+    //         { id: "2", message: "Sản phẩm 'iPhone 15 Pro Max' sắp hết hàng" },
+    const [unreadCount, setUnreadCount] = useState<number>(
+        notifications.length
+    );
 
     // ================ 🧩 NEW — Khôi phục giỏ hàng từ localStorage khi load trang ================
     useEffect(() => {
@@ -92,6 +111,13 @@ const ProductPage: React.FC = () => {
         }
     }, []);
 
+    useEffect(() => {
+        console.log("Notifications updated:", notifications);
+
+        const unread = notifications.filter((n) => !n.read).length;
+        setUnreadCount(unread);
+    }, [notifications]);
+
     // ================ 🧩 NEW — Lưu giỏ hàng & tổng tiền vào localStorage khi thay đổi ================
     useEffect(() => {
         try {
@@ -114,33 +140,34 @@ const ProductPage: React.FC = () => {
             }
 
             try {
-                const res = await axios.post(
-                    "http://localhost:8888/api/v1/identity/auth/introspect",
-                    token,
-                    {
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
+                const decoded = jwtDecode<JwtPayload>(token);
 
-                if (res.status !== 200) {
-                    alert(
-                        "Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!"
+                if (!decoded.exp) {
+                    console.warn(
+                        "Token không có trường exp, không thể kiểm tra."
                     );
-                    localStorage.removeItem("token");
-                    navigate("/login");
+                    return;
                 }
-            } catch (error: any) {
-                console.error("❌ Token không hợp lệ hoặc đã hết hạn:", error);
-                if (error.response?.status === 401) {
+
+                const currentTime = Date.now() / 1000; // tính theo giây
+
+                if (decoded.exp < currentTime) {
+                    // token hết hạn
                     alert(
                         "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại!"
                     );
                     localStorage.removeItem("token");
                     navigate("/login");
+                    return;
                 }
+
+                // ✅ Nếu còn hạn thì bạn có thể tiếp tục gọi API khác ở đây nếu muốn
+                console.log("✅ Token hợp lệ, userId:", decoded.sub);
+            } catch (error) {
+                console.error("❌ Token không hợp lệ:", error);
+                alert("Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại!");
+                localStorage.removeItem("token");
+                navigate("/login");
             }
         };
 
@@ -200,6 +227,38 @@ const ProductPage: React.FC = () => {
     }, []);
 
     useEffect(() => {
+        // 👉 Kết nối SSE với Bearer Token
+        const eventSource = new EventSourcePolyfill(
+            `http://localhost:8888/api/v1/notifications/stream/${userId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                heartbeatTimeout: 60000000000, // optional: timeout reconnect
+            }
+        );
+
+        eventSource.addEventListener("notification", (event) => {
+            const notification = JSON.parse(event.data);
+            console.log("📩 Nhận thông báo:", notification);
+
+            setNotifications((prev) => [
+                { ...notification, read: false },
+                ...prev,
+            ]);
+        });
+
+        eventSource.onerror = (err) => {
+            console.error("❌ Lỗi SSE:", err);
+            eventSource.close();
+        };
+
+        return () => {
+            eventSource.close();
+        };
+    }, []);
+
+    useEffect(() => {
         const fetchAllNotification = async () => {
             try {
                 const res = await axios.get(
@@ -212,6 +271,7 @@ const ProductPage: React.FC = () => {
                 );
 
                 setNotifications(res.data.result || []);
+
                 console.log("📦 các thông báo:", res.data.result);
             } catch (error) {
                 console.error("Error fetching data:", error);
@@ -349,23 +409,76 @@ const ProductPage: React.FC = () => {
         navigate("/login");
     };
 
-    // ====================== 🔔 Thông báo ======================
-    const [notifications, setNotifications] = useState<NotificationItem[]>([
-        { id: "1", message: "Đơn hàng #1234 đã được xác nhận" },
-        { id: "2", message: "Sản phẩm 'iPhone 15 Pro Max' sắp hết hàng" },
-    ]);
-
-    const [unreadCount, setUnreadCount] = useState<number>(
-        notifications.length
-    );
-
     const notificationContent = (
-        <List
-            dataSource={notifications}
-            renderItem={(item) => (
-                <List.Item key={item.id}>{item.message}</List.Item>
-            )}
-        />
+        <div
+            style={{
+                maxHeight: "400px",
+                overflowY: "auto",
+                width: "350px",
+            }}
+        >
+            <List
+                dataSource={notifications}
+                locale={{ emptyText: "Không có thông báo nào" }}
+                renderItem={(item) => (
+                    <List.Item
+                        key={item.notificationId}
+                        style={{
+                            backgroundColor: item.read ? "#fff" : "#e6f7ff",
+                            borderRadius: "8px",
+                            marginBottom: "8px",
+                            padding: "10px 14px",
+                            boxShadow: item.read
+                                ? "none"
+                                : "0 0 5px rgba(24,144,255,0.3)",
+                            transition: "all 0.3s ease",
+                        }}
+                    >
+                        <div style={{ width: "100%" }}>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                            >
+                                <Text
+                                    strong
+                                    style={{
+                                        color: item.read ? "#555" : "#1890ff",
+                                    }}
+                                >
+                                    {item.type || "Thông báo"}
+                                </Text>
+                                {!item.read && (
+                                    <span
+                                        style={{
+                                            width: "8px",
+                                            height: "8px",
+                                            borderRadius: "50%",
+                                            backgroundColor: "#52c41a",
+                                            display: "inline-block",
+                                        }}
+                                    ></span>
+                                )}
+                            </div>
+                            <div style={{ marginTop: "4px" }}>
+                                <Text>{item.message}</Text>
+                            </div>
+                            <div
+                                style={{
+                                    marginTop: "6px",
+                                    fontSize: "12px",
+                                    color: "#999",
+                                }}
+                            >
+                                {new Date(item.sentAt).toLocaleString("vi-VN")}
+                            </div>
+                        </div>
+                    </List.Item>
+                )}
+            />
+        </div>
     );
 
     const cartContent = (
@@ -378,6 +491,22 @@ const ProductPage: React.FC = () => {
             )}
         />
     );
+    // Khi mở popover thông báo
+    const handleOpenNotification = async () => {
+        setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+        setUnreadCount(0);
+
+        // (tùy chọn) gửi cập nhật lên server
+        try {
+            await axios.patch(
+                `http://localhost:8888/api/v1/notifications/mark-read/${userId}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+        } catch (err) {
+            console.error("❌ Lỗi khi cập nhật đã đọc:", err);
+        }
+    };
 
     // ====================== 🧾 Giao diện ======================
     const renderCards = () =>
@@ -543,6 +672,9 @@ const ProductPage: React.FC = () => {
                             title="Thông báo"
                             content={notificationContent}
                             trigger="click"
+                            onOpenChange={(visible) => {
+                                if (visible) handleOpenNotification();
+                            }}
                         >
                             <Badge count={unreadCount} offset={[0, 6]}>
                                 <BellOutlined
