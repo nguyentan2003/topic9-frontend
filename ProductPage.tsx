@@ -436,7 +436,7 @@ const ProductPage: React.FC = () => {
                     <List.Item
                         key={item.notificationId}
                         style={{
-                            backgroundColor: item.read ? "#fff" : "#e6f7ff",
+                            backgroundColor: item.read ? "#fff" : "#b9d6e3ff",
                             borderRadius: "8px",
                             marginBottom: "8px",
                             padding: "10px 14px",
@@ -685,7 +685,8 @@ const ProductPage: React.FC = () => {
                             content={notificationContent}
                             trigger="click"
                             onOpenChange={(visible) => {
-                                if (visible) handleOpenNotification();
+                                // chỉ khi popover đóng (visible = false) mới gọi API mark-read
+                                if (!visible) handleOpenNotification();
                             }}
                         >
                             <Badge count={unreadCount} offset={[0, 6]}>

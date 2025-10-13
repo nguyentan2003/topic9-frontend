@@ -70,11 +70,59 @@ const OrderPage: React.FC = () => {
             case "PENDING":
                 return <Tag color="gold">⏳ Chờ xử lý</Tag>;
             case "SUCCESS":
-                return <Tag color="green">✅ Thành công</Tag>;
+                return <Tag color="blue">✅ Đặt thành công</Tag>;
+            case "SHIPPING":
+                return <Tag color="green">Đang giao hàng</Tag>;
             case "CANCELED":
                 return <Tag color="red">❌ Đã hủy</Tag>;
             default:
                 return <Tag color="default">{status}</Tag>;
+        }
+    };
+
+    // ✅ Thêm hàm hủy đơn hàng
+    const handleCancelOrder = async (order: Order) => {
+        if (
+            order.orderStatus === "SHIPPING" ||
+            order.orderStatus === "CANCELED"
+        ) {
+            alert("⚠️ Đơn hàng này không thể hủy!");
+            return;
+        }
+
+        let confirmMessage = "";
+        if (order.orderStatus === "PENDING") {
+            confirmMessage =
+                "Bạn có chắc muốn hủy đơn hàng đang chờ xử lý không?";
+        } else if (order.orderStatus === "SUCCESS") {
+            confirmMessage =
+                "Đơn hàng đã được xác nhận, bạn có chắc chắn muốn hủy?";
+        }
+
+        const confirmCancel = window.confirm(confirmMessage);
+        if (!confirmCancel) return;
+
+        try {
+            const response = await axios.patch(
+                `http://localhost:8888/api/v1/order/cancel-order/${order.orderId}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            setOrders((prevOrders) =>
+                prevOrders.map((o) =>
+                    o.orderId === order.orderId
+                        ? { ...o, orderStatus: "CANCELED" }
+                        : o
+                )
+            );
+
+            console.log("✅ Hủy đơn hàng thành công:", response.data);
+
+            alert("🛑 Đơn hàng đã được hủy thành công!");
+        } catch (error) {
+            console.error("Lỗi khi hủy đơn hàng:", error);
+            alert("❌ Không thể hủy đơn hàng, vui lòng thử lại!");
         }
     };
 
@@ -121,15 +169,25 @@ const OrderPage: React.FC = () => {
                 ) : (
                     orders.map((order) => (
                         <Card key={order.id} className="order-card">
-                            <div className="order-top">
+                            {/* --- HEADER --- */}
+                            <div
+                                className="order-top"
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                }}
+                            >
                                 <div>
-                                    <Text strong>Mã đơn:</Text> {order.orderId}
+                                    <Text strong>Mã đơn:</Text>{" "}
+                                    <Text>{order.orderId}</Text>
                                 </div>
                                 {renderStatusTag(order.orderStatus)}
                             </div>
 
-                            <Divider style={{ margin: "8px 0" }} />
+                            <Divider style={{ margin: "10px 0" }} />
 
+                            {/* --- ORDER INFO --- */}
                             <div className="order-summary">
                                 <p>
                                     <Text strong>Khách:</Text> {order.fullName}
@@ -153,7 +211,6 @@ const OrderPage: React.FC = () => {
                                             year: "numeric",
                                             hour: "2-digit",
                                             minute: "2-digit",
-                                            second: "2-digit",
                                         }
                                     )}
                                 </p>
@@ -163,72 +220,82 @@ const OrderPage: React.FC = () => {
                                         ? "Thanh toán trước"
                                         : "Khi nhận hàng"}
                                 </p>
+                            </div>
 
-                                {/* ✅ Hiển thị trạng thái thanh toán nếu đang PENDING */}
-                                {order.orderStatus === "PENDING" && (
-                                    <p>
-                                        <Text strong>
-                                            Trạng thái thanh toán:
-                                        </Text>{" "}
-                                        {order.paymentStatus === "PAID" ? (
-                                            <Tag color="green">
-                                                💰 Đã thanh toán
-                                            </Tag>
-                                        ) : (
-                                            <>
-                                                <Tag color="red">
-                                                    💸 Chưa thanh toán
-                                                </Tag>
-                                                <Button
-                                                    type="primary"
-                                                    size="small"
-                                                    style={{
-                                                        marginLeft: 8,
-                                                        backgroundColor:
-                                                            "#1677ff",
-                                                    }}
-                                                    onClick={() =>
-                                                        handleGoToPayment(order)
-                                                    }
-                                                >
-                                                    💳 Thanh toán ngay
-                                                </Button>
-                                            </>
-                                        )}
-                                    </p>
+                            {/* --- PRODUCT PREVIEW --- */}
+                            <Divider style={{ margin: "10px 0" }} />
+                            <div className="product-preview">
+                                {order?.orderItemSummaries?.length > 0 ? (
+                                    order.orderItemSummaries.map((item) => (
+                                        <div
+                                            key={item.productId}
+                                            className="product-item"
+                                        >
+                                            <img
+                                                src={
+                                                    item.imageUrl
+                                                        ? `${baseURLImage}${item.imageUrl}`
+                                                        : `${baseURLImage}${defaultImage}`
+                                                }
+                                                alt={item.productName}
+                                            />
+                                            <div>
+                                                <Text strong>
+                                                    {item.productName}
+                                                </Text>
+                                                <div>
+                                                    {item.quantity} ×{" "}
+                                                    {item.priceAtTime.toLocaleString(
+                                                        "vi-VN"
+                                                    )}{" "}
+                                                    ₫
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <Text type="secondary">
+                                        Không có sản phẩm trong đơn hàng
+                                    </Text>
                                 )}
                             </div>
 
-                            <Divider style={{ margin: "8px 0" }} />
-
-                            <div className="product-preview">
-                                {order.orderItemSummaries.map((item) => (
-                                    <div
-                                        key={item.productId}
-                                        className="product-item"
-                                    >
-                                        <img
-                                            src={
-                                                item.imageUrl
-                                                    ? `${baseURLImage}${item.imageUrl}`
-                                                    : `${baseURLImage}${defaultImage}`
+                            {/* --- ACTION AREA --- */}
+                            <Divider style={{ margin: "10px 0" }} />
+                            <div
+                                className="order-actions"
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "flex-end",
+                                    gap: "8px",
+                                }}
+                            >
+                                {/* Nếu PENDING → Hiển thị thanh toán */}
+                                {order.orderStatus === "PENDING" &&
+                                    order.paymentStatus !== "PAID" && (
+                                        <Button
+                                            type="primary"
+                                            onClick={() =>
+                                                handleGoToPayment(order)
                                             }
-                                            alt={item.productName}
-                                        />
-                                        <div>
-                                            <Text strong>
-                                                {item.productName}
-                                            </Text>
-                                            <div>
-                                                {item.quantity} ×{" "}
-                                                {item.priceAtTime.toLocaleString(
-                                                    "vi-VN"
-                                                )}{" "}
-                                                ₫
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                            style={{
+                                                backgroundColor: "#1677ff",
+                                            }}
+                                        >
+                                            💳 Thanh toán ngay
+                                        </Button>
+                                    )}
+
+                                {/* Nếu PENDING hoặc SUCCESS → Hiển thị hủy */}
+                                {(order.orderStatus === "PENDING" ||
+                                    order.orderStatus === "SUCCESS") && (
+                                    <Button
+                                        danger
+                                        onClick={() => handleCancelOrder(order)}
+                                    >
+                                        🛑 Hủy đơn
+                                    </Button>
+                                )}
                             </div>
                         </Card>
                     ))

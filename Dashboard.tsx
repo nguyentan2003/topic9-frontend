@@ -170,6 +170,35 @@ export function Dashboard() {
         (sum, o) => sum + o.totalAmount,
         0
     );
+    const handleUpdateStatus = async (orderId: string, newStatus: string) => {
+        try {
+            const confirmMsg =
+                newStatus === "SHIPPING"
+                    ? "Xác nhận giao hàng?"
+                    : "Bạn có chắc muốn hủy đơn hàng này không?";
+
+            if (!window.confirm(confirmMsg)) return;
+
+            const res = await axios.patch(
+                `http://localhost:8888/api/v1/order/update-status/${orderId}?status=${newStatus}`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            console.log(res.data);
+
+            // Cập nhật lại trong UI
+            setOrders((prevOrders) =>
+                prevOrders.map((o) =>
+                    o.orderId === orderId ? { ...o, orderStatus: newStatus } : o
+                )
+            );
+
+            alert("✅ Cập nhật trạng thái đơn hàng thành công!");
+        } catch (error) {
+            console.error("❌ Lỗi khi cập nhật trạng thái:", error);
+            alert("Không thể cập nhật trạng thái, vui lòng thử lại!");
+        }
+    };
 
     const formatCurrency = (amount: number) =>
         amount.toLocaleString("vi-VN", { style: "currency", currency: "VND" });
@@ -354,6 +383,33 @@ export function Dashboard() {
                                                 </ul>
                                             </>
                                         )}
+                                    {selectedOrder.orderStatus ===
+                                        "SUCCESS" && (
+                                        <div className="status-actions">
+                                            <button
+                                                className="btn-shipping-order"
+                                                onClick={() =>
+                                                    handleUpdateStatus(
+                                                        selectedOrder.orderId,
+                                                        "SHIPPING"
+                                                    )
+                                                }
+                                            >
+                                                Giao Hàng
+                                            </button>
+                                            <button
+                                                className="btn-cancel-order"
+                                                onClick={() =>
+                                                    handleUpdateStatus(
+                                                        selectedOrder.orderId,
+                                                        "CANCELED"
+                                                    )
+                                                }
+                                            >
+                                                Hủy đơn
+                                            </button>
+                                        </div>
+                                    )}
 
                                     <button
                                         className="close-btn"

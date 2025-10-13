@@ -58,7 +58,10 @@
 }
 
 .status-badge.SUCCESS {
-    background-color: #19e147ff;
+    background-color: #5dd3f1ff;
+}
+.status-badge.SHIPPING {
+    background-color: #15cf47ff;
 }
 
 .status-badge.PENDING {
@@ -187,4 +190,39 @@
 .dashboard-page li {
     margin-left: 40px;
     margin-bottom: 10px;
+}
+.status-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.btn-shipping-order {
+    background-color: #ffc107;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: #000;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+}
+
+.btn-shipping-order:hover {
+    background-color: #e0a800;
+}
+
+.btn-cancel-order {
+    background-color: #dc3545;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    flex: 1;
+}
+
+.btn-cancel-order:hover {
+    background-color: #c82333;
 }
