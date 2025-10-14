@@ -27,13 +27,6 @@ interface JwtPayload {
     sub?: string;
 }
 
-// interface OrderSummary {
-//     orderId: string;
-//     orderDate: string;
-//     customerName: string;
-//     totalAmount: number;
-//     orderStatus: string;
-// }
 export interface OrderSummary {
     id: string;
 
@@ -153,16 +146,24 @@ export function Dashboard() {
     const today = new Date().toISOString().split("T")[0];
     const thisMonth = new Date().getMonth();
     const thisYear = new Date().getFullYear();
+    const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
 
+    // Đơn hợp lệ (không bị hủy)
+    const validOrders = orders.filter((o) => o.orderStatus !== "CANCELED");
+    const totalValidOrders = validOrders.length;
+    const totalRevenue = validOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+
+    // Đơn hôm nay
     const todaysOrders = orders.filter(
         (o) => o.orderDate.split("T")[0] === today
     );
-    const todaysRevenue = todaysOrders.reduce(
-        (sum, o) => sum + o.totalAmount,
-        0
-    );
 
-    const thisMonthOrders = orders.filter((o) => {
+    const todaysRevenue = validOrders
+        .filter((o) => o.orderDate.split("T")[0] === today)
+        .reduce((sum, o) => sum + o.totalAmount, 0);
+
+    // Đơn tháng này
+    const thisMonthOrders = validOrders.filter((o) => {
         const d = new Date(o.orderDate);
         return d.getMonth() === thisMonth && d.getFullYear() === thisYear;
     });
@@ -170,6 +171,20 @@ export function Dashboard() {
         (sum, o) => sum + o.totalAmount,
         0
     );
+
+    // Tỷ lệ hủy
+    const canceledOrders = orders.filter((o) => o.orderStatus === "CANCELED");
+    const cancelRate =
+        orders.length > 0
+            ? ((canceledOrders.length / orders.length) * 100).toFixed(1)
+            : 0;
+
+    // (Tuỳ chọn) Đếm số đơn theo trạng thái
+    const statusCounts = orders.reduce((acc: any, o) => {
+        acc[o.orderStatus] = (acc[o.orderStatus] || 0) + 1;
+        return acc;
+    }, {});
+
     const handleUpdateStatus = async (orderId: string, newStatus: string) => {
         try {
             const confirmMsg =
@@ -194,6 +209,7 @@ export function Dashboard() {
             );
 
             alert("✅ Cập nhật trạng thái đơn hàng thành công!");
+            setIsModalOpen(false);
         } catch (error) {
             console.error("❌ Lỗi khi cập nhật trạng thái:", error);
             alert("Không thể cập nhật trạng thái, vui lòng thử lại!");
@@ -213,10 +229,16 @@ export function Dashboard() {
         .slice(0, 1000);
 
     // 🧾 Chọn dữ liệu hiển thị (lọc hoặc tất cả) + Sắp xếp giảm dần theo thời gian
-    const displayedOrders = (showTodayOnly ? todaysOrders : recentOrders).sort(
-        (a, b) =>
-            new Date(b.orderDate).getTime() - new Date(a.orderDate).getTime()
-    );
+
+    const displayedOrders = (showTodayOnly ? todaysOrders : recentOrders)
+        .filter((o) =>
+            selectedStatus === "ALL" ? true : o.orderStatus === selectedStatus
+        )
+        .sort(
+            (a, b) =>
+                new Date(b.orderDate).getTime() -
+                new Date(a.orderDate).getTime()
+        );
 
     // 🧮 Tính phân trang
     const totalPages = Math.ceil(displayedOrders.length / itemsPerPage);
@@ -232,25 +254,42 @@ export function Dashboard() {
         <div className="dashboard-page">
             <div className="page-header">
                 <h2>Tổng quan hệ thống</h2>
+                <button onClick={() => navigate("/user-page")}>
+                    User Page
+                </button>
             </div>
 
-            {/* 🧱 Thống kê */}
             <div className="stat-cards">
                 <StatCard
+                    value={formatCurrency(totalRevenue)}
+                    label="💰 Tổng doanh thu"
+                />
+                <StatCard value={totalValidOrders} label="📦 Tổng đơn hợp lệ" />
+
+                <StatCard
                     value={formatCurrency(todaysRevenue)}
-                    label="Doanh thu hôm nay"
+                    label="📅 Doanh thu hôm nay"
                 />
                 <StatCard
-                    value={todaysOrders.length}
-                    label="Đơn hàng hôm nay"
+                    value={
+                        todaysOrders.filter((o) => o.orderStatus !== "CANCELED")
+                            .length
+                    }
+                    label="🛍️ Đơn hàng hôm nay"
                 />
+
                 <StatCard
                     value={formatCurrency(thisMonthRevenue)}
-                    label="Doanh thu tháng này"
+                    label="📆 Doanh thu tháng này"
                 />
                 <StatCard
                     value={thisMonthOrders.length}
-                    label="Đơn hàng tháng này"
+                    label="🧾 Đơn hàng tháng này"
+                />
+
+                <StatCard
+                    value={`${cancelRate}%`}
+                    label="❌ Tỷ lệ đơn bị hủy"
                 />
             </div>
 
@@ -259,14 +298,28 @@ export function Dashboard() {
             <div className="recent-orders">
                 <div className="orders-header">
                     <h3>Đơn hàng gần nhất</h3>
-                    <button
-                        onClick={() => setShowTodayOnly((prev) => !prev)}
-                        className="toggle-today-btn"
-                    >
-                        {showTodayOnly
-                            ? "Hiển thị tất cả"
-                            : "Xem đơn hàng hôm nay"}
-                    </button>
+                    <div className="filters">
+                        <button
+                            onClick={() => setShowTodayOnly((prev) => !prev)}
+                            className="toggle-today-btn"
+                        >
+                            {showTodayOnly
+                                ? "Hiển thị tất cả"
+                                : "Xem đơn hàng hôm nay"}
+                        </button>
+
+                        <select
+                            value={selectedStatus}
+                            onChange={(e) => setSelectedStatus(e.target.value)}
+                            className="status-filter"
+                        >
+                            <option value="ALL">Tất cả trạng thái</option>
+                            <option value="PENDING">PENDING</option>
+                            <option value="SHIPPING">SHIPPING</option>
+                            <option value="SUCCESS">SUCCESS</option>
+                            <option value="CANCELED">CANCELED</option>
+                        </select>
+                    </div>
                 </div>
 
                 {displayedOrders.length > 0 ? (
@@ -329,6 +382,12 @@ export function Dashboard() {
                                     <p>
                                         <strong>Khách hàng:</strong>{" "}
                                         {selectedOrder.fullName}
+                                    </p>
+                                    <p>
+                                        <strong>Địa chỉ:</strong>{" "}
+                                        {selectedOrder.address
+                                            ? selectedOrder.address
+                                            : "Thôn 4, Quỳnh Lưu, Nghệ An"}
                                     </p>
                                     <p>
                                         <strong>Ngày đặt:</strong>{" "}

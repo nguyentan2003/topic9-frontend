@@ -1,5 +1,5 @@
 .dashboard-page {
-    padding: 24px;
+    padding: 20px;
     color: #333;
 }
 
@@ -225,4 +225,16 @@
 
 .btn-cancel-order:hover {
     background-color: #c82333;
+}
+.filters {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.status-filter {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    cursor: pointer;
 }
